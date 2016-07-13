@@ -48,11 +48,11 @@ class PitchParser(object):
 
 class PitchWriter(object):
     def __init__(self, parser=None, wanted_attrs=None, outfile=None, **csv_kwargs):
-        if parser is None and wanted_attrs=None:
+        if parser is None and wanted_attrs is None:
             warnings.warn("No header information provided; none will be written")
             self.writer = partial(csv.writer, **csv_kwargs)
         else:
-            wanted_attrs = wanted_attrs or parser.wanted_attrs)
+            wanted_attrs = wanted_attrs or parser.wanted_attrs
             self.writer = partial(csv.DictWriter, fieldnames=wanted_attrs,
                                   **csv_kwargs)
         self.outfile = outfile
