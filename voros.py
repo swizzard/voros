@@ -163,7 +163,7 @@ class Scraper(object):
         :type resp: requests.models.Response
         :return: BeautifulSoup object
         """
-        return BeautifulSoup(req.content, "lxml")
+        return BeautifulSoup(resp.content, "lxml")
 
     @staticmethod
     def inc_date(d):
