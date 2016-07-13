@@ -1,3 +1,6 @@
+"""
+Scrape and parse data from the MLB Pitches API
+"""
 import calendar
 from collections import Iterator
 from copy import copy
@@ -13,6 +16,9 @@ import requests
 
 
 class Scraper(object):
+    """
+    Scrape and parse data from the MLB Pitches API
+    """
     def __init__(self):
         self.start_url = 'http://gd2.mlb.com/components/game/mlb/'
         self.min_date = date(2008, 4, 1)
@@ -21,9 +27,23 @@ class Scraper(object):
         self.gid_pat = re.compile(r'gid_\d{4}_\d{2}_\d{2}_*')
 
     def run(self, start_date=None, end_date=None):
+        """
+        Scrape and parse data
+        :param start_date: earliest date to scrape
+        :param end_date: latest date to scrape
+        :type start_date, end_date: datetime.date object
+        :return: generator of dicts
+        """
         return self.parse(self.scrape(start_date, end_date))
 
     def scrape(self, start_date=None, end_date=None):
+        """
+        Scrape XML pages from the API and convert it to `BeautifulSoup` objects
+        :param start_date: earliest date to scrape
+        :param end_date: latest date to scrape
+        :type start_date, end_date: datetime.date object
+        :return: generator of BeautifulSoup objects
+        """
         start_date = start_date or self.min_date
         end_date = end_date or self.max_date
         curr_date = start_date
@@ -43,6 +63,13 @@ class Scraper(object):
             curr_date = self.inc_date(curr_date)
 
     def parse(self, game_or_games):
+        """
+        Extract data from games
+        :param game_or_games: game(s) to parse
+        :type game_or_games: iterator of BeautifulSoup objects, or a single
+                             BeautifulSoup object
+        :return: generator of dicts
+        """
         if not isinstance(game_or_games, Iterator):
             game_or_games = [game_or_games]
         for game in game_or_games:
@@ -52,6 +79,13 @@ class Scraper(object):
                         yield pitch
 
     def days_to_scrape(self, year, month):
+        """
+        Calculate range of days when games were played
+        :param year: year
+        :param month: month
+        :type year, month: int
+        :return (int, int)
+        """
         dow_first_day, last_day = calendar.monthrange(year, month)
         if year == self.max_date.year and month == self.max_date.month:
             last_day = self.max_day + 1
@@ -60,14 +94,36 @@ class Scraper(object):
         return (6 - dow_first_day), last_day
 
     def fmt_url(self, year, month, day):
+        """
+        Create a valid API URL
+        :param year: year
+        :param month: month
+        :param day: day
+        :type year, month, day: int
+        :return: str
+        """
         return self.start_url + 'year_{}/month_{:02}/day_{:02}/'.format(
             year, month, day)
 
     def get_gids(self, soup):
+        """
+        Extract links to games
+        :param soup: the soup to parse
+        :type soup: BeautifulSoup object
+        :return: list of str
+        """
         gids = soup.find_all(string=self.gid_pat)
         return [g.strip() for g in gids]
 
     def get_day_games(self, year, month, day):
+        """
+        Construct urls to games
+        :param year: year
+        :param month: month
+        :param day: day
+        :type year, month, day: int
+        :return: list of str
+        """
         url = self.fmt_url(year, month, day)
         req = requests.get(url)
         gids = self.get_gids(self.to_soup(req))
@@ -75,10 +131,24 @@ class Scraper(object):
                 in self.get_gids(self.to_soup(req))]
 
     def parse_inning(self, inning_soup):
+        """
+        Extract and parse at bats in an inning
+        :param inning_soup: soup fragment representing an inning
+        :type inning_soup: BeautifulSoup object
+        :return: list of generators of dicts
+        """
         return [self.parse_at_bat(at_bat, copy(inning_soup.attrs)) for at_bat
                 in inning_soup.find_all('atbat')]
 
     def parse_at_bat(self, at_bat, ctx):
+        """
+        Parse an at bat into a dict
+        :param at_bat: soup fragment representing an at bat
+        :type at_bat: BeautifulSoup object
+        :param ctx: context info extracted from containing inning
+        :type ctx: dict
+        :return: generator of dicts
+        """
         ctx.update(event=at_bat.attrs['event'], batter=at_bat.attrs['batter'],
                    pitcher=at_bat.attrs['pitcher'])
         for pitch in at_bat.find_all('pitch'):
@@ -86,11 +156,24 @@ class Scraper(object):
                    chain(ctx.iteritems(), pitch.attrs.iteritems())}
 
     @staticmethod
-    def to_soup(req):
+    def to_soup(resp):
+        """
+        Convert a response's content into a BeautifulSoup object
+        :param resp: response to convert
+        :type resp: requests.models.Response
+        :return: BeautifulSoup object
+        """
         return BeautifulSoup(req.content, "lxml")
 
     @staticmethod
     def inc_date(d):
+        """
+        Increment a date by one month, 'rolling over' to the start of the
+        following year's season if necessary
+        :param d: date to increment
+        :type d: datetime.date object
+        :return: datetime.date object
+        """
         if d.month < 11:
             return date(d.year, d.month + 1, 1)
         else:
@@ -98,6 +181,12 @@ class Scraper(object):
 
     @staticmethod
     def _convert(v):
+        """
+        Ensure strings are representable in ASCII
+        :param v: value
+        :type v: any
+        :return: value of the same type as v
+        """
         if isinstance(v, basestring):
             return v.encode('ascii', 'xmlcharrefreplace')
         else:
