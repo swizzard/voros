@@ -16,10 +16,13 @@ class PitchParser(object):
         d.update(**kwargs)
         return d
 
-    def at_bats(self, soup):
-        return soup.find_all('atbat')
+    def parse_inning(self, inning_soup):
+        ctx = {'inning_num': inning_soup.attrs['num']}
+        return [self.parse_at_bat(at_bat, inning_soup.attrs['num']) for at_bat
+                in inning_soup.find_all('atbat')]
 
-    def parse_at_bat(self, at_bat):
+
+    def parse_at_bat(self, at_bat, inning_num):
         event = at_bat.attrs['event']
         batter_id = at_bat.attrs['batter']
         pitcher_id = at_bat.attrs['pitcher']
@@ -28,7 +31,8 @@ class PitchParser(object):
         strikes = 0
         for idx, pitch in enumerate(at_bat.find_all('pitch')):
             dct = self.new_dict(event=event, batter_id=batter_id,
-                                pitcher_id=pitcher_id, pitch_idx=idx)
+                                pitcher_id=pitcher_id, pitch_idx=idx,
+                                inning_num=inning_num)
             for key in dct:
                 if key in pitch.attrs:
                     dct[key] = pitch.attrs[key]
@@ -43,18 +47,15 @@ class PitchParser(object):
         return pitches
 
     def parse_game(self, soup):
-        return list(chain(*[self.parse_at_bat(ab) for ab in self.at_bats(soup)]))
+        for inning in soup.find_all('inning'):
+            for at_bat in self.parse_inning(inning):
+                for pitch in at_bat:
+                    yield pitch
 
 
 class PitchWriter(object):
-    def __init__(self, parser=None, wanted_attrs=None, outfile=None, **csv_kwargs):
-        if parser is None and wanted_attrs is None:
-            warnings.warn("No header information provided; none will be written")
-            self.writer = partial(csv.writer, **csv_kwargs)
-        else:
-            wanted_attrs = wanted_attrs or parser.wanted_attrs
-            self.writer = partial(csv.DictWriter, fieldnames=wanted_attrs,
-                                  **csv_kwargs)
+    def __init__(self, attrs, outfile=None, **csv_kwargs):
+        self.writer = partial(csv.DictWriter, fieldnames=attrs, **csv_kwargs)
         self.outfile = outfile
 
     def write(self, pitches, outfile=None):
@@ -72,8 +73,7 @@ class PitchWriter(object):
             needs_closing = True
         try:
             writer = self.writer(outfile)
-            if isinstance(writer, csv.DictWriter):
-                writer.writeheader()
+            writer.writeheader()
             for pitch in pitches:
                 writer.writerow(pitch)
         except Exception:

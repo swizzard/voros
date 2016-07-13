@@ -9,10 +9,10 @@ import requests
 
 
 class PitchScraper(object):
-    def __init__(self, starting_year=2008):
+    def __init__(self, starting_year=0):
         self.start_url = 'http://gd2.mlb.com/components/game/mlb/'
         self.start_month = 4
-        self.start_year = starting_year
+        self.start_year = max(starting_year, 2008)
         today = date.today()
         self.max_year = today.year
         self.max_month = today.month
@@ -56,15 +56,22 @@ class PitchScraper(object):
         curr_month = self.start_month
         curr_year = self.start_year
         while True:
-            if end_month is not None and curr_month > end_month:
+            if curr_month > end_month:
                 break
-            if end_year is not None and curr_year > end_year:
+            if curr_year > end_year:
                 break
             days_to_scrape = self.days_to_scrape(curr_year, curr_month)
             for day_idx in xrange(*days_to_scrape):
                 for game_url in self.get_day_games(curr_year, curr_month, day_idx):
                     req = requests.get(game_url)
                     yield self.to_soup(req)
-            curr_month += 1
+            curr_month = self.month_modulo(curr_month)
             curr_year += 1
+
+    @staticmethod
+    def month_modulo(month):
+        if month == 12:
+            return 1
+        else:
+            return month + 1
 
