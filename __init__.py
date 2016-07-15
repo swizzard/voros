@@ -1,1 +1,0 @@
-from voros import Scraper
