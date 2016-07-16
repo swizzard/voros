@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 
 setup(name="voros",
@@ -8,5 +8,5 @@ setup(name="voros",
       author_email="sam.raker@gmail.com",
       url="https://github.com/swizzard/voros",
       packages=["voros"],
-      requires=["beautifulsoup4 (==4.4.1)",
-                "requests (==2.10.0)"])
+      install_requires=["beautifulsoup4==4.4.1",
+                        "requests==2.10.0"])
