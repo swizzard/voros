@@ -2,7 +2,7 @@ from setuptools import setup
 
 
 setup(name="voros",
-      version="0.1.0",
+      version="0.1.1",
       description="scrape MLB pitch API data",
       author="Sam Raker",
       author_email="sam.raker@gmail.com",
