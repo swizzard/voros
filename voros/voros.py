@@ -91,7 +91,7 @@ class Scraper(object):
         """
         first_dow, last_day = calendar.monthrange(d.year, d.month)
         if d.month == 4:
-            first = 6 - first_dow
+            first = (6 - first_dow) or 1
         else:
             first = d.day
         last = min(date(d.year, d.month, last_day), self.max_date).day
