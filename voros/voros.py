@@ -153,8 +153,7 @@ class Scraper(object):
         :type ctx: dict
         :yield: dict
         """
-        ctx.update(event=at_bat.attrs['event'], batter=at_bat.attrs['batter'],
-                   pitcher=at_bat.attrs['pitcher'])
+        ctx.update(at_bat.attrs)
         for pitch in at_bat.find_all('pitch'):
             yield {k: self._convert(v) for k, v in
                    chain(ctx.iteritems(), pitch.attrs.iteritems())}
