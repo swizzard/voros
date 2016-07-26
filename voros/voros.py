@@ -56,7 +56,7 @@ class Scraper(object):
                         try:
                             req = requests.get(game_url)
                             req.raise_for_status()
-                            yield self.to_soup(req)
+                            yield (self.to_soup(req), day)
                         except Exception as e:
                             warnings.warn(str(e))
             else:
@@ -74,9 +74,9 @@ class Scraper(object):
         """
         if not isinstance(game_or_games, Iterator):
             game_or_games = [game_or_games]
-        for game in game_or_games:
+        for game, day in game_or_games:
             for inning in game.find_all('inning'):
-                for at_bat in self.parse_inning(inning):
+                for at_bat in self.parse_inning(inning, day):
                     for pitch in at_bat:
                         yield pitch
 
@@ -134,14 +134,16 @@ class Scraper(object):
         for gid in self.get_gids(self.to_soup(req)):
             yield '{}{}{}'.format(url, gid, 'inning/inning_all.xml')
 
-    def parse_inning(self, inning_soup):
+    def parse_inning(self, inning_soup, day):
         """
         Extract and parse at bats in an inning
         :param inning_soup: soup fragment representing an inning
         :type inning_soup: BeautifulSoup object
         :return: generator of generators of dicts
         """
-        return (self.parse_at_bat(at_bat, copy(inning_soup.attrs)) for at_bat
+        ctx = copy(inning_soup.attrs)
+        ctx['date'] = day
+        return (self.parse_at_bat(at_bat, ctx) for at_bat
                 in inning_soup.find_all('atbat'))
 
     def parse_at_bat(self, at_bat, ctx):
