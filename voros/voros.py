@@ -4,9 +4,7 @@ Scrape and parse data from the MLB Pitches API
 import calendar
 from collections import Iterator
 from copy import copy
-import csv
 from datetime import date
-from functools import partial
 from itertools import chain
 import re
 import warnings
@@ -130,7 +128,6 @@ class Scraper(object):
         """
         url = self.fmt_url(d.year, d.month, d.day)
         req = requests.get(url)
-        gids = self.get_gids(self.to_soup(req))
         for gid in self.get_gids(self.to_soup(req)):
             yield '{}{}{}'.format(url, gid, 'inning/inning_all.xml')
 
