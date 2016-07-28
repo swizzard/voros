@@ -58,9 +58,14 @@ to be reasonable about dates. Games played between April and November are scrape
 with a modulo-ish mechanism resulting in the first game in April immediately following
 the last game of the last year's playoffs.
 
-There's no per-game date info, unfortunately. The only date information is in the
+~~There's no per-game date info, unfortunately. The only date information is in the
 URL, and I couldn't think of an elegant way to propagate that through the parsing
-process. Maybe I will someday! Coincidentally, I'm also accepting PRs, hint hint.
+process. Maybe I will someday! Coincidentally, I'm also accepting PRs, hint hint.~~
+(There are actually _two_ separate date fields in the data itself&mdash;`start_tfs_zulu`
+and `tfs_zulu`. They're even already in UTC for you! Local game times could be
+recreated with a library like [`pytz`](https://pypi.python.org/pypi/pytz?) and
+a mapping between home teams and timezones, but that's Beyond The Scope Of This
+Work.)
 
 You can get A LOT OF DATA this way. The code uses generators wherever
 reasonable to cut down on memory usage, but you'll still probably regret trying
