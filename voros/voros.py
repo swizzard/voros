@@ -34,7 +34,7 @@ class Scraper(object):
         """
         return self.parse(self.scrape(start_date, end_date))
 
-    def scrape(self, start_date=None, end_date=None):
+    def scrape(self, start_date, end_date):
         """
         Scrape XML pages from the API and convert it to `BeautifulSoup` objects
         :param start_date: earliest date to scrape
@@ -42,8 +42,8 @@ class Scraper(object):
         :type start_date, end_date: datetime.date object
         :return: generator of BeautifulSoup objects
         """
-        start_date = start_date or self.min_date
-        end_date = end_date or self.max_date
+        start_date = start_date
+        end_date = end_date
         curr_date = start_date
         while True:
             for day in self.days_to_scrape(curr_date):
@@ -54,7 +54,7 @@ class Scraper(object):
                         try:
                             req = requests.get(game_url)
                             req.raise_for_status()
-                            yield self.to_soup(req)
+                            yield (self.to_soup(req), day)
                         except Exception as e:
                             warnings.warn(str(e))
             else:
@@ -72,10 +72,11 @@ class Scraper(object):
         """
         if not isinstance(game_or_games, Iterator):
             game_or_games = [game_or_games]
-        for game in game_or_games:
+        for (game, day) in game_or_games:
             for inning in game.find_all('inning'):
                 for at_bat in self.parse_inning(inning):
                     for pitch in at_bat:
+                        pitch['date'] = day
                         yield pitch
 
     def days_to_scrape(self, d):
@@ -89,7 +90,7 @@ class Scraper(object):
         """
         first_dow, last_day = calendar.monthrange(d.year, d.month)
         if d.month == 4:
-            first = (6 - first_dow) or 1
+            first = max((6 - first_dow), d.day)
         else:
             first = d.day
         last = min(date(d.year, d.month, last_day), self.max_date).day
